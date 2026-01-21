@@ -208,7 +208,6 @@
     *Los datos corresponden únicamente a cupos regulares. Para identificar el lugar donde se imparte cada carrera se utilizan los datos de oferta definitiva publicados por el Mineduc.*
   </script>
   <script id="44" type="application/sql" hidden="" database="duckdb" output="dataCarrerasAlternativas">
-    -- Carreras alternativas postuladas con mayor preferencia para estudiantes que fueron seleccionados sin ser la primera preferencia
     WITH tablaSeleccionadosNoPrimeraPreferencia as (SELECT*
     FROM './data/Postulación_Admisión2026/ArchivoD_Adm2026REG.csv' res
 
@@ -255,10 +254,6 @@
       NOMBRE_UNIVERSIDAD,
       LUGAR_IMPARTE
     ORDER BY COD_CARRERA_SELECCIONADA, count(*) DESC
-
-
-
-
   </script>
   <script id="4" type="application/sql" hidden="" database="duckdb" output="dataCarrerasCuposRegulares">
     SELECT
