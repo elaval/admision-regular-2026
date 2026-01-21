@@ -45,8 +45,7 @@
       })
 
       return Plot.plot({
-        width,
-        marginLeft:200,
+        marginLeft:50,
         marginRight:50,
         marginTop: 40,
         x:{
@@ -54,6 +53,7 @@
           domain:[minPuntaje, 1000]
         },
         y:{
+          tickSize:0,
           label:""
         },
         marks:[
@@ -61,14 +61,14 @@
           Plot.rectX(dataPlot, {
             x1:"minPuntaje",
             x2:"maxPuntaje",
-            y:"NOMBRE_CARRERA",
+            y:d => "",
             fill:"lightgrey"
           }),
           // Vertical line at minimum score
           Plot.ruleX(dataPlot, {
             x:"minPuntaje",
-            y1: d => d.NOMBRE_CARRERA,
-            y2: d => d.NOMBRE_CARRERA,
+            y1: d => "",
+            y2: d => "",
             stroke: "red",
             strokeWidth: 2,
             dy: 0
@@ -76,8 +76,8 @@
           // Vertical line at maximum score
           Plot.ruleX(dataPlot, {
             x:"maxPuntaje",
-            y1: d => d.NOMBRE_CARRERA,
-            y2: d => d.NOMBRE_CARRERA,
+            y1: d => "",
+            y2: d => "",
             stroke: "red",
             strokeWidth: 2,
             dy: 0
@@ -85,7 +85,7 @@
           // Text label for minimum score
           Plot.text(dataPlot, {
             x:"minPuntaje",
-            y:"NOMBRE_CARRERA",
+            y:d => "",
             text: d => d.minPuntaje,
             dy: -30,
             fontSize: 12,
@@ -95,7 +95,7 @@
           // Text label for maximum score
           Plot.text(dataPlot, {
             x:"maxPuntaje",
-            y:"NOMBRE_CARRERA",
+            y:d=> "",
             text: d => d.maxPuntaje,
             dy: -30,
             fontSize: 12,
