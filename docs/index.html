@@ -1,0 +1,282 @@
+<!doctype html>
+<notebook theme="glacier">
+  <title>Selección de postulantes en Educación Superior</title>
+  <script id="1" type="text/markdown">
+    # Selección de postulantes en Educación Superior
+    ## Análisis según preferencia
+    Fuente de datos: Datos abiertos DEMRE
+  </script>
+  <script id="10" type="text/x-typescript">
+    const universidad = view(Inputs.select(_.chain(dataCarrerasCuposRegulares).map(d => d.NOMBRE_UNIVERSIDAD).uniq().sort().value(), {label: "Universidad"}));
+
+  </script>
+  <script id="12" type="text/x-typescript">
+    const carrera = view(Inputs.select(_.chain(dataCarrerasCuposRegulares).filter(d => d.NOMBRE_UNIVERSIDAD == universidad).uniqBy(d => d.COD_CARRERA).sortBy(d => d.NOMBRE_CARRERA).value(), {label: "Carrera", format:d => d.LUGAR_IMPARTE ? `${d.NOMBRE_CARRERA} (${d.LUGAR_IMPARTE})`: `${d.NOMBRE_CARRERA}`}));
+
+  </script>
+  <script id="30" type="text/x-typescript" hidden="">
+    const carreraSeleccionada = dataCarrerasCuposRegulares.find(d => d.COD_CARRERA == carrera.COD_CARRERA)
+
+    const datosCarreraSeleccionada = ({
+      primeraPreferencia: carreraSeleccionada["primeraPreferencia"],
+      noPrimeraPreferencia: carreraSeleccionada["noPrimeraPreferencia"],
+      total: carreraSeleccionada["estudiantes"],
+      recordCarrera : dataCarrerasCuposRegulares.find(d => d.COD_CARRERA == carrera.COD_CARRERA)
+    })
+
+  </script>
+  <script id="18" type="text/x-typescript">
+    const recordCarrera = dataCarrerasCuposRegulares.find(d => d.COD_CARRERA == carrera.COD_CARRERA)
+
+      display(md`
+    <h2 style="max-width:100%;"> ${carrera.NOMBRE_CARRERA} - ${universidad} ${carrera.LUGAR_IMPARTE ? `(${carrera.LUGAR_IMPARTE})`: ``}</h2>
+
+    ${datosCarreraSeleccionada.total} estudiantes aceptados en <b>cupos regulares</b> con puntajes entre ${recordCarrera.minPuntaje} y  ${recordCarrera.maxPuntaje} puntos
+
+
+    `)
+  </script>
+  <script id="28" type="text/x-typescript">
+    ( () => {
+      const minPuntaje = d3.min(dataCarrerasCuposRegulares,d => +`${d["minPuntaje"]}`.replace(",","."))
+      const dataPlot = dataCarrerasCuposRegulares.filter(d => d.COD_CARRERA == carrera.COD_CARRERA).map(d => {
+        d.minPuntaje = +`${d["minPuntaje"]}`.replace(",",".");
+        d.maxPuntaje = +`${d["maxPuntaje"]}`.replace(",",".");
+        return d
+      })
+
+      return Plot.plot({
+        marginLeft:200,
+        marginTop: 40,
+        x:{
+          label: "Puntaje de seleccionados",
+          domain:[minPuntaje, 1000]
+        },
+        y:{
+          label:""
+        },
+        marks:[
+          // Rectangle showing the score range
+          Plot.rectX(dataPlot, {
+            x1:"minPuntaje",
+            x2:"maxPuntaje",
+            y:"NOMBRE_CARRERA",
+            fill:"lightgrey"
+          }),
+          // Vertical line at minimum score
+          Plot.ruleX(dataPlot, {
+            x:"minPuntaje",
+            y1: d => d.NOMBRE_CARRERA,
+            y2: d => d.NOMBRE_CARRERA,
+            stroke: "red",
+            strokeWidth: 2,
+            dy: 0
+          }),
+          // Vertical line at maximum score
+          Plot.ruleX(dataPlot, {
+            x:"maxPuntaje",
+            y1: d => d.NOMBRE_CARRERA,
+            y2: d => d.NOMBRE_CARRERA,
+            stroke: "red",
+            strokeWidth: 2,
+            dy: 0
+          }),
+          // Text label for minimum score
+          Plot.text(dataPlot, {
+            x:"minPuntaje",
+            y:"NOMBRE_CARRERA",
+            text: d => d.minPuntaje,
+            dy: -30,
+            fontSize: 12,
+            fill: "red",
+            textAnchor: "middle"
+          }),
+          // Text label for maximum score
+          Plot.text(dataPlot, {
+            x:"maxPuntaje",
+            y:"NOMBRE_CARRERA",
+            text: d => d.maxPuntaje,
+            dy: -30,
+            fontSize: 12,
+            fill: "red",
+            textAnchor: "middle"
+          })
+        ]
+      })
+    })()
+  </script>
+  <script id="29" type="text/markdown">
+    ### Postulantes a la carrera en primera preferencia
+
+    Un ${d3.format(".1%")(datosCarreraSeleccionada.primeraPreferencia/datosCarreraSeleccionada.total)} (${d3.format("d")(datosCarreraSeleccionada.primeraPreferencia)} estudiantes) postularon a la carrera en <u>primera preferencia</u>.
+
+
+  </script>
+  <script id="43" type="text/x-typescript">
+    (() => {
+      const etiquetas = ["Primera preferencia","No Primera Preferencia"]
+      const dataPlot = _.chain(dataCarrerasCuposRegulares)
+        .filter(d => d.COD_CARRERA == carrera.COD_CARRERA)
+        .map(d => [
+          {
+            carrera: carrera.NOMBRE_CARRERA,
+            grupo: etiquetas[0],
+            estudiantes: d.primeraPreferencia,
+            porcentaje: d.porcentajePrimeraPreferencia
+          },
+          {
+            carrera: carrera.NOMBRE_CARRERA,
+            grupo: etiquetas[1],
+            estudiantes: d.noPrimeraPreferencia,
+            porcentaje: d.porcentajeNoPrimeraPreferencia
+          }
+        ])
+        .flatten()
+        .value()
+
+      //return dataPlot
+      return Plot.plot({
+        color:{legend:true, domain:etiquetas},
+        marks:[
+          Plot.barX(dataPlot,{
+            fill: "grupo",
+            x:"estudiantes",
+            order:etiquetas
+          }),
+          Plot.text(dataPlot,Plot.stackX({
+            z: d => d.esPrimera ? etiquetas[0] :etiquetas[1],
+            x:"estudiantes",
+            text:d => d3.format(".1%")(d["porcentaje"]),
+            fill: d => d.grupo == etiquetas[0] ? "white": "black",
+            order:etiquetas
+          }))
+        ]
+      })
+    })()
+  </script>
+  <script id="22" type="text/markdown">
+    ### Postulaciones alternativas (otras carreras a las que postularon con una mayor preferencia)
+    Un ${d3.format(".1%")(datosCarreraSeleccionada.noPrimeraPreferencia/datosCarreraSeleccionada.total)} postuló también a otras carreras con una mayor preferencia.
+
+    Las siguientes carreras altrenatias (con mayor preferencia) con mayor número de postulaciones (se incluyen las 5 primeras)
+
+  </script>
+  <script id="46" type="text/x-typescript">
+    (() => {
+      const dataAlternativas = _.chain(dataCarrerasAlternativas)
+      .filter(d => d.COD_CARRERA_SELECCIONADA == carrera.COD_CARRERA)
+      .slice(0,5)
+      .value();
+
+      //display(dataAlternativas);
+
+      return md`
+    <table>
+    <thead>
+    <tr>
+    <th>Postulaciones</th>
+    <th>Carrera</th>
+    <th>Universidad</th>
+    <th>Lugar</th>
+    </tr>
+    </thead>
+    <tbody>
+    ${_.chain(dataAlternativas)
+      .map(d => `<tr>
+      <td>${d.estudiantes}</td>
+      <td>${d.NOMBRE_CARRERA}</td>
+      <td>${d.NOMBRE_UNIVERSIDAD}</td>
+      <td>${d.LUGAR_IMPARTE}</td>
+      </tr> `)
+      .slice(0,5)
+      .value().join("\n")}
+    </tbody>
+    </table>`
+    })()
+
+  </script>
+  <script id="53" type="text/markdown">
+    Fuente de datos: Datos de postulación y selección del Proceso de Admisión 2026,
+    Datos abiertos DEMRE.
+
+    *Para identificar el lugar en que se imparte la carrera se utilzan los datos de “PAES 2025 - Oferta Definitiva de Programas” publicados en el sitio de Datos Abiertos del Mineduc*
+  </script>
+  <script id="44" type="application/sql" hidden="" database="duckdb" output="dataCarrerasAlternativas">
+    -- Carreras alternativas postuladas con mayor preferencia para estudiantes que fueron seleccionados sin ser la primera preferencia
+    WITH tablaSeleccionadosNoPrimeraPreferencia as (SELECT*
+    FROM './data/Postulación_Admisión2026/ArchivoD_Adm2026REG.csv' res
+
+    WHERE  ESTADO_PREF = 24
+      AND ORDEN_PREF <> 1
+      AND TIPO_PREF = 'REGULAR'),
+
+    tablaPreferenciasAlternativas as (
+      SELECT
+        t1.ID_aux,
+        t1.COD_CARRERA_PREF as COD_CARRERA_SELECCIONADA,
+        t1.ORDEN_PREF as PREFERENCIA_CARRERA_SELECCIONADA,
+        t1.PTJE_PREF as PUNTAJE_CARRERA_SELECCIONADA,
+        t2.COD_CARRERA_PREF as COD_CARRERA_ALTERNATIVA,
+        t2.ORDEN_PREF as PREFERENCIA_CARRERA_ALTERNATIVA,
+        t2.PTJE_PREF as PUNTAJE_CARRERA_ALTERNATIVA,
+        oferta.NOMBRE_CARRERA,
+        oferta.NOMBRE_UNIVERSIDAD,
+        ofertaMineduc2025.LUGAR_IMPARTE
+
+      FROM tablaSeleccionadosNoPrimeraPreferencia t1
+      LEFT JOIN './data/Postulación_Admisión2026/ArchivoD_Adm2026REG.csv' t2
+       ON t1.ID_aux = t2.ID_aux
+
+      LEFT JOIN './data/Postulación_Admisión2026/Oferta académica.csv' oferta
+       ON t2.COD_CARRERA_PREF = oferta.CODIGO_CARRERA
+
+      LEFT JOIN './data/Postulación_Admisión2026/OFERTA_DEFINITIVA_PROGRAMAS_PAES_2025.csv' ofertaMineduc2025
+       ON t2.COD_CARRERA_PREF = ofertaMineduc2025.COD_CARRERA
+
+      WHERE t2.ORDEN_PREF < t1.ORDEN_PREF
+    )
+
+    SELECT COD_CARRERA_SELECCIONADA,
+      COD_CARRERA_ALTERNATIVA,
+      NOMBRE_CARRERA,
+      NOMBRE_UNIVERSIDAD,
+      LUGAR_IMPARTE,
+      count(*) as estudiantes
+    FROM tablaPreferenciasAlternativas
+    GROUP BY COD_CARRERA_SELECCIONADA,
+      COD_CARRERA_ALTERNATIVA,
+      NOMBRE_CARRERA,
+      NOMBRE_UNIVERSIDAD,
+      LUGAR_IMPARTE
+    ORDER BY COD_CARRERA_SELECCIONADA, count(*) DESC
+
+
+
+
+  </script>
+  <script id="4" type="application/sql" hidden="" database="duckdb" output="dataCarrerasCuposRegulares">
+    SELECT
+      COD_CARRERA_PREF as COD_CARRERA,
+      NOMBRE_UNIVERSIDAD,
+      NOMBRE_CARRERA,
+      LUGAR_IMPARTE,
+      count(*) as estudiantes,
+      MIN(PTJE_PREF) as minPuntaje,
+      MAX(PTJE_PREF) as maxPuntaje,
+      SUM(CASE WHEN ORDEN_PREF = 1 THEN 1 ELSE 0 END) as primeraPreferencia,
+      SUM(CASE WHEN ORDEN_PREF = 1 THEN 0 ELSE 1 END) as noPrimeraPreferencia,
+      SUM(CASE WHEN ORDEN_PREF = 1 THEN 1 ELSE 0 END) / count(*) as porcentajePrimeraPreferencia,
+      SUM(CASE WHEN ORDEN_PREF = 1 THEN 0 ELSE 1 END) / count(*) as porcentajeNoPrimeraPreferencia
+
+    FROM './data/Postulación_Admisión2026/ArchivoD_Adm2026REG.csv' res
+      LEFT JOIN './data/Postulación_Admisión2026/Oferta académica.csv' oferta
+        ON res.COD_CARRERA_PREF = oferta.CODIGO_CARRERA
+
+      LEFT JOIN './data/Postulación_Admisión2026/OFERTA_DEFINITIVA_PROGRAMAS_PAES_2025.csv' oferta2
+        ON res.COD_CARRERA_PREF = oferta2.COD_CARRERA
+
+      WHERE ESTADO_PREF = 24 AND TIPO_PREF = 'REGULAR'
+    GROUP BY NOMBRE_UNIVERSIDAD,NOMBRE_CARRERA, COD_CARRERA_PREF,LUGAR_IMPARTE
+      ORDER BY NOMBRE_UNIVERSIDAD,NOMBRE_CARRERA,LUGAR_IMPARTE
+  </script>
+</notebook>
