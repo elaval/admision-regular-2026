@@ -50,6 +50,7 @@
 
       return Plot.plot({
         marginLeft:200,
+        marginRight:50,
         marginTop: 40,
         x:{
           label: "Puntaje de seleccionados",
@@ -92,7 +93,7 @@
             dy: -30,
             fontSize: 12,
             fill: "red",
-            textAnchor: "middle"
+            textAnchor: "end"
           }),
           // Text label for maximum score
           Plot.text(dataPlot, {
@@ -102,7 +103,7 @@
             dy: -30,
             fontSize: 12,
             fill: "red",
-            textAnchor: "middle"
+            textAnchor: "start"
           })
         ]
       })
