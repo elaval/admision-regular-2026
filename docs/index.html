@@ -16,7 +16,7 @@
 
   </script>
   <script id="12" type="text/x-typescript">
-    const carrera = view(Inputs.select(_.chain(dataCarrerasCuposRegulares).filter(d => d.NOMBRE_UNIVERSIDAD == universidad).uniqBy(d => d.COD_CARRERA).sortBy(d => d.NOMBRE_CARRERA).value(), {label: "Carrera", format:d => d.LUGAR_IMPARTE ? `${d.NOMBRE_CARRERA} (${d.LUGAR_IMPARTE})`: `${d.NOMBRE_CARRERA}`}));
+    const carrera = view(Inputs.select(_.chain(dataCarrerasCuposRegulares).filter(d => d.NOMBRE_UNIVERSIDAD == universidad).uniqBy(d => d.COD_CARRERA).sortBy(d => d.NOMBRE_CARRERA).value(), {label: "Carrera", format:d => d.LUGAR_IMPARTE ? `${d.NOMBRE_CARRERA} (${d.LUGAR_IMPARTE})`: `${d.NOMBRE_CARRERA} (cod. ${d.COD_CARRERA})`}));
 
   </script>
   <script id="30" type="text/x-typescript" hidden="">
@@ -33,7 +33,7 @@
   <script id="18" type="text/markdown">
     <h2 style="max-width:100%;"> ${carrera.NOMBRE_CARRERA}</h2>
 
-    <h2 style="max-width:100%;">${universidad} ${carrera.LUGAR_IMPARTE ? `(${carrera.LUGAR_IMPARTE})`: ``}</h2>
+    <h2 style="max-width:100%;">${universidad} ${carrera.LUGAR_IMPARTE ? `(${carrera.LUGAR_IMPARTE})`: `(cod. ${carrera.COD_CARRERA})`}</h2>
 
     <div>${datosCarreraSeleccionada.total} estudiantes aceptados en <b>cupos regulares</b> con puntajes entre ${datosCarreraSeleccionada.recordCarrera.minPuntaje} y  ${datosCarreraSeleccionada.recordCarrera.maxPuntaje} puntos</div>
   </script>
@@ -205,7 +205,10 @@
     - Datos de postulación y selección del Proceso de Admisión 2026 - Datos abiertos DEMRE
     - PAES 2025 - Oferta Definitiva de Programas - Datos Abiertos Mineduc
 
-    *Los datos corresponden únicamente a cupos regulares. Para identificar el lugar donde se imparte cada carrera se utilizan los datos de oferta definitiva publicados por el Mineduc el año 2025.*
+    **Notas metodológicas:**
+    - Los datos corresponden únicamente a cupos regulares
+    - Para identificar el lugar donde se imparte cada carrera se utilizan los datos de oferta definitiva publicados por el Mineduc para el año 2025, ya que los datos de 2026 aún no están disponibles en datos abiertos
+    - Para carreras que no aparecen en la oferta de 2025, se muestra el código de la carrera en lugar del lugar en que se imparte
   </script>
   <script id="44" type="application/sql" hidden="" database="duckdb" output="dataCarrerasAlternativas">
     WITH tablaSeleccionadosNoPrimeraPreferencia as (SELECT*
