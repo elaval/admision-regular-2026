@@ -28,16 +28,12 @@
     })
 
   </script>
-  <script id="18" type="text/x-typescript">
-    const recordCarrera = dataCarrerasCuposRegulares.find(d => d.COD_CARRERA == carrera.COD_CARRERA)
+  <script id="18" type="text/markdown">
+    <h2 style="max-width:100%;"> ${carrera.NOMBRE_CARRERA}</h2>
 
-      display(md`
-    <h2 style="max-width:100%;"> ${carrera.NOMBRE_CARRERA} - ${universidad} ${carrera.LUGAR_IMPARTE ? `(${carrera.LUGAR_IMPARTE})`: ``}</h2>
+    <h2 style="max-width:100%;">${universidad} ${carrera.LUGAR_IMPARTE ? `(${carrera.LUGAR_IMPARTE})`: ``}</h2>
 
-    ${datosCarreraSeleccionada.total} estudiantes aceptados en <b>cupos regulares</b> con puntajes entre ${recordCarrera.minPuntaje} y  ${recordCarrera.maxPuntaje} puntos
-
-
-    `)
+    <div>${datosCarreraSeleccionada.total} estudiantes aceptados en <b>cupos regulares</b> con puntajes entre ${datosCarreraSeleccionada.recordCarrera.minPuntaje} y  ${datosCarreraSeleccionada.recordCarrera.maxPuntaje} puntos</div>
   </script>
   <script id="28" type="text/x-typescript">
     ( () => {
@@ -49,6 +45,7 @@
       })
 
       return Plot.plot({
+        width,
         marginLeft:200,
         marginRight:50,
         marginTop: 40,
@@ -206,7 +203,7 @@
     - Datos de postulación y selección del Proceso de Admisión 2026 - Datos abiertos DEMRE
     - PAES 2025 - Oferta Definitiva de Programas - Datos Abiertos Mineduc
 
-    *Los datos corresponden únicamente a cupos regulares. Para identificar el lugar donde se imparte cada carrera se utilizan los datos de oferta definitiva publicados por el Mineduc.*
+    *Los datos corresponden únicamente a cupos regulares. Para identificar el lugar donde se imparte cada carrera se utilizan los datos de oferta definitiva publicados por el Mineduc el año 2025.*
   </script>
   <script id="44" type="application/sql" hidden="" database="duckdb" output="dataCarrerasAlternativas">
     WITH tablaSeleccionadosNoPrimeraPreferencia as (SELECT*
