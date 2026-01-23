@@ -39,6 +39,7 @@
   </script>
   <script id="27" type="text/markdown">
     ### Detalle
+    20 comunas con mayor cantidad de estudiantes
   </script>
   <script id="25" type="text/x-typescript">
     (() => {
@@ -61,7 +62,7 @@
       return md`
     <table style="max-width:450px;">
     <thead>
-    <tr><th>#</th><th>Comuna</th><th># Estudiantes</th><th>% Estudiantes</th><th>% Acumulado</th></tr>
+    <tr><th>#</th><th>Comuna</th><th># Estudiantes</th><th>% del total</th><th>% acumulado</th></tr>
     </thead>
     <tbody>
     ${data
@@ -153,7 +154,7 @@
         ELSE LUGAR_IMPARTE
       END as LUGAR_IMPARTE
     FROM './data/Postulación_Admisión2026/Oferta académica.csv' oferta
-      INNER JOIN './data/Postulación_Admisión2026/carreras_lugar_imparte_2026.csv' lugar
+      LEFT JOIN './data/Postulación_Admisión2026/carreras_lugar_imparte_2026.csv' lugar
      ON oferta.CODIGO_CARRERA = lugar.COD_CARRERA
     )
 
