@@ -136,9 +136,10 @@
       LUGAR_IMPARTE
     ORDER BY count(*) DESC
   </script>
-  <script id="10" type="application/sql" hidden="" database="duckdb" output="dataSedes">
+  <script id="35" type="application/sql" hidden="" database="duckdb" output="dataSedes">
     WITH tabla as (
-    SELECT DISTINCT
+    SELECT
+      puntaje.ID_aux,
       NOMBRE_UNIVERSIDAD,
       CASE
         WHEN LUGAR_IMPARTE = 'CHILLAN' THEN 'CHILLÁN'
@@ -153,18 +154,37 @@
         WHEN LUGAR_IMPARTE = 'QUIILPUÉ' THEN 'QUILPUÉ'
         ELSE LUGAR_IMPARTE
       END as LUGAR_IMPARTE
-    FROM './data/Postulación_Admisión2026/Oferta académica.csv' oferta
-      LEFT JOIN './data/Postulación_Admisión2026/carreras_lugar_imparte_2026.csv' lugar
-     ON oferta.CODIGO_CARRERA = lugar.COD_CARRERA
-    )
+    FROM "./data/Rinden_Admisión2026/ArchivoC_Adm2026REG.csv" puntaje
+    LEFT JOIN "./data/Postulación_Admisión2026/ArchivoD_Adm2026REG.csv" postulacion
+      ON puntaje.ID_aux = postulacion.ID_aux
+    LEFT JOIN "./data/Directorio-Oficial-EE-2025/20250926_Directorio_Oficial_EE_2025_20250430_WEB.csv" dir
+      ON puntaje.RBD = dir.RBD
+    LEFT JOIN './data/Postulación_Admisión2026/Oferta académica.csv' oferta
+     ON postulacion.COD_CARRERA_PREF = oferta.CODIGO_CARRERA
+    LEFT JOIN './data/Postulación_Admisión2026/carreras_lugar_imparte_2026.csv' lugar
+     ON postulacion.COD_CARRERA_PREF = lugar.COD_CARRERA
+    WHERE
+      SITUACION_EGRESO = 1
+      AND ESTADO_PREF = 24
+    ),
 
-    SELECT
+    tablaSedes as (
+      SELECT
+
       NOMBRE_UNIVERSIDAD,
       LUGAR_IMPARTE,
-      (SELECT count(*) FROM tabla t2 WHERE tabla.NOMBRE_UNIVERSIDAD = t2.NOMBRE_UNIVERSIDAD) AS numeroSedes
+      count(*) as estudiantes
     FROM tabla
+    GROUP BY
+      NOMBRE_UNIVERSIDAD,
+      LUGAR_IMPARTE
+    ORDER BY NOMBRE_UNIVERSIDAD, count(*) DESC)
 
-    ORDER BY NOMBRE_UNIVERSIDAD
+    SELECT *,
+      (SELECT count(*) FROM tablaSedes t2 WHERE tablaSedes.NOMBRE_UNIVERSIDAD = t2.NOMBRE_UNIVERSIDAD) as numeroSedes
+
+    FROM tablaSedes
+    ORDER BY NOMBRE_UNIVERSIDAD, estudiantes DESC
   </script>
   <script id="16" type="text/x-typescript" hidden="">
     import {Pack} from "observable:@d3/pack"
