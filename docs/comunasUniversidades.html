@@ -1,0 +1,86 @@
+<!doctype html>
+<notebook theme="glacier">
+  <title>Comunas de origen</title>
+  <script id="1" type="text/markdown">
+    # Comunas de origen
+  </script>
+  <script id="7" type="text/x-typescript">
+    const universidad = view(Inputs.select(_.chain(dataOfertaAcademica).map(d => d.NOMBRE_UNIVERSIDAD).uniq().sort().value(), {label: "Universidad"}));
+
+  </script>
+  <script id="14" type="text/x-typescript">
+    const lugar = view(Inputs.select(_.chain(dataOfertaAcademica).filter(d => d.NOMBRE_UNIVERSIDAD == universidad).uniqBy(d => d.LUGAR_IMPARTE).map(d => d.LUGAR_IMPARTE).value(), {label: "Lugar donde se imparte la carrera" }));
+
+  </script>
+  <script id="23" type="text/html">
+    <h2 style="max-width:100%;">Comunas de donde egresaron de Educación Media los estudiantes aceptados en la ${universidad} (${lugar})</h2>
+  </script>
+  <script id="15" type="text/x-typescript">
+    (() => {
+      const dataUniversidad = dataUniversidadComuna.filter(d => d.NOMBRE_UNIVERSIDAD == universidad && d.LUGAR_IMPARTE == lugar)
+
+      return Pack(dataUniversidad, {
+      path: (d) => d.NOM_COM_RBD.replaceAll(".", "/"), // e.g. flare/animate/Easing
+      label: (d) => d.NOM_COM_RBD.split(".").pop(), // display text
+      value: (d) => d?.estudiantes, // area of each circle
+      title: (d, n) => [n.id, n.value.toLocaleString()].join("\n"), // hover text
+      width,
+      height: 720,
+    })
+    })()
+  </script>
+  <script id="22" type="text/markdown">
+    <div style="max-width:100%;"><small >Nota: Las comunas corresponde a la comuna del establecimiento escolar en el que estudiaron los estudiantes egresados de Educación Media en 2025 con postulación aceptada en carreras de la Universidad respectiva que se imparte en el lugar seleccionado</small>
+  </script>
+  <script id="21" type="text/markdown">
+    ---
+
+    **Fuentes de datos:**
+    - Datos de postulación y selección del Proceso de Admisión 2026 - Datos abiertos DEMRE
+    - PAES 2025 - Oferta Definitiva de Programas - Datos Abiertos Mineduc
+    - Directorio de Establecimientos Escolares 2025 - Datos Abiertos Mineduc
+
+    **Notas metodológicas:**
+    - Para identificar el lugar donde se imparte cada carrera se utilizan los datos de oferta definitiva publicados por el Mineduc para el año 2025, ya que los datos de 2026 aún no están disponibles en datos abiertos
+    - No se incluyen datos de carreras nuevas que no aparecen en la oferta de 2025
+  </script>
+  <script id="19" type="application/sql" hidden="" database="duckdb" output="dataUniversidadComuna">
+    SELECT
+
+      NOMBRE_UNIVERSIDAD,
+      LUGAR_IMPARTE,
+      NOM_COM_RBD,
+      count(*) as estudiantes
+    FROM "./data/Rinden_Admisión2026/ArchivoC_Adm2026REG.csv" puntaje
+    LEFT JOIN "./data/Postulación_Admisión2026/ArchivoD_Adm2026REG.csv" postulacion
+      ON puntaje.ID_aux = postulacion.ID_aux
+    LEFT JOIN "./data/Directorio-Oficial-EE-2025/20250926_Directorio_Oficial_EE_2025_20250430_WEB.csv" dir
+      ON puntaje.RBD = dir.RBD
+    LEFT JOIN './data/Postulación_Admisión2026/Oferta académica.csv' oferta
+     ON postulacion.COD_CARRERA_PREF = oferta.CODIGO_CARRERA
+    LEFT JOIN './data/Postulación_Admisión2026/OFERTA_DEFINITIVA_PROGRAMAS_PAES_2025.csv' ofertaMineduc2025
+     ON postulacion.COD_CARRERA_PREF = ofertaMineduc2025.COD_CARRERA
+    WHERE
+
+       SITUACION_EGRESO = 1
+      AND ESTADO_PREF = 24
+    GROUP BY
+      NOM_COM_RBD,
+      NOMBRE_UNIVERSIDAD,
+      LUGAR_IMPARTE
+    ORDER BY count(*) DESC
+  </script>
+  <script id="10" type="application/sql" hidden="" database="duckdb" output="dataOfertaAcademica">
+    SELECT DISTINCT
+      NOMBRE_UNIVERSIDAD,
+      LUGAR_IMPARTE
+    FROM './data/Postulación_Admisión2026/Oferta académica.csv' oferta
+      INNER JOIN './data/Postulación_Admisión2026/OFERTA_DEFINITIVA_PROGRAMAS_PAES_2025.csv' ofertaMineduc2025
+     ON oferta.CODIGO_CARRERA = ofertaMineduc2025.COD_CARRERA
+
+    ORDER BY NOMBRE_UNIVERSIDAD, NOMBRE_CARRERA
+  </script>
+  <script id="16" type="text/x-typescript" hidden="">
+    import {Pack} from "observable:@d3/pack"
+  </script>
+</notebook>
