@@ -5,15 +5,20 @@
     # Comunas de origen
   </script>
   <script id="7" type="text/x-typescript">
-    const universidad = view(Inputs.select(_.chain(dataOfertaAcademica).map(d => d.NOMBRE_UNIVERSIDAD).uniq().sort().value(), {label: "Universidad"}));
+    const universidad = view(Inputs.select(_.chain(dataSedes).map(d => d.NOMBRE_UNIVERSIDAD).uniq().sort().value(), {label: "Universidad"}));
 
   </script>
   <script id="14" type="text/x-typescript">
-    const lugar = view(Inputs.select(_.chain(dataOfertaAcademica).filter(d => d.NOMBRE_UNIVERSIDAD == universidad).uniqBy(d => d.LUGAR_IMPARTE).map(d => d.LUGAR_IMPARTE).value(), {label: "Lugar donde se imparte la carrera" }));
+    const lugar = view(Inputs.select(_.chain(dataSedes).filter(d => d.NOMBRE_UNIVERSIDAD == universidad).uniqBy(d => d.LUGAR_IMPARTE).map(d => d.LUGAR_IMPARTE).value(), {label: "Lugar donde se imparte la carrera" }));
 
   </script>
+  <script id="34" type="text/x-typescript" hidden="">
+    const numeroSedesUniversidadSeleccionada = dataSedes.find(d => d.NOMBRE_UNIVERSIDAD = universidad)["numeroSedes"]
+    const etiquetaUniversidadSede = numeroSedesUniversidadSeleccionada > 1 ? `${universidad} - sede ${lugar}` : `${universidad}`
+  </script>
   <script id="23" type="text/html">
-    <h2 style="max-width:100%;">Comunas de donde egresaron de Educación Media los estudiantes aceptados en la ${universidad} (${lugar})</h2>
+    <h2 style="max-width:100%;"> ${etiquetaUniversidadSede}</h2>
+    <h3 style="max-width:100%;">Comunas de origen de los estudiantes de Educación Media que egresaron en 2025 y fueron aceptados en el proceso de admisión universitaria 2026</h3>
   </script>
   <script id="15" type="text/x-typescript">
     (() => {
@@ -30,7 +35,47 @@
     })()
   </script>
   <script id="22" type="text/markdown">
-    <div style="max-width:100%;"><small >Nota: Las comunas corresponde a la comuna del establecimiento escolar en el que estudiaron los estudiantes egresados de Educación Media en 2025 con postulación aceptada en carreras de la Universidad respectiva que se imparte en el lugar seleccionado</small>
+    <div style="max-width:100%;"><small>Nota: Las comunas corresponden a la comuna del establecimiento educacional donde cursaron Educación Media los estudiantes que egresaron en 2025 y fueron aceptados en carreras de la universidad y sede respectiva en el proceso de admisión 2026.</small></div>
+  </script>
+  <script id="27" type="text/markdown">
+    ### Detalle
+  </script>
+  <script id="25" type="text/x-typescript">
+    (() => {
+      let accum = 0;
+
+      const data = _.chain(dataUniversidadComuna)
+        .filter(d => d.NOMBRE_UNIVERSIDAD == universidad && d.LUGAR_IMPARTE == lugar)
+        .sortBy(d => d.estudiantes)
+        .reverse()
+        .map(d => {
+          d.estudiantesAcumulados = accum + d.estudiantes;
+          accum += d.estudiantes;
+          return d;
+        })
+        .value()
+
+      const totalEstudiantes = data
+        .reduce((memo,d) => memo+ +d.estudiantes,0);
+
+      return md`
+    <table style="max-width:450px;">
+    <thead>
+    <tr><th>#</th><th>Comuna</th><th># Estudiantes</th><th>% Estudiantes</th><th>% Acumulado</th></tr>
+    </thead>
+    <tbody>
+    ${data
+      .slice(0,20)
+      .map((d,i) => `<tr>
+      <td>${i+1}</td>
+      <td>${d.NOM_COM_RBD}</td>
+      <td>${d.estudiantes}</td>
+      <td>${d3.format(".2%")(d.estudiantes/totalEstudiantes)}</td>
+      <td>${d3.format(".2%")(d.estudiantesAcumulados/totalEstudiantes)}</td>
+      </tr>`).join("\n")}
+    </tbody>
+    </table>`
+    })()
   </script>
   <script id="21" type="text/markdown">
     ---
@@ -39,18 +84,30 @@
     - Datos de postulación y selección del Proceso de Admisión 2026 - Datos abiertos DEMRE
     - PAES 2025 - Oferta Definitiva de Programas - Datos Abiertos Mineduc
     - Directorio de Establecimientos Escolares 2025 - Datos Abiertos Mineduc
+    - Oferta Definitiva de Carreras, Vacantes y Ponderaciones - Proceso de Admisión 2026, DEMRE
 
     **Notas metodológicas:**
-    - Para identificar el lugar donde se imparte cada carrera se utilizan los datos de oferta definitiva publicados por el Mineduc para el año 2025, ya que los datos de 2026 aún no están disponibles en datos abiertos
-    - No se incluyen datos de carreras nuevas que no aparecen en la oferta de 2025
+    - Para identificar el lugar donde se imparte cada carrera se extrajeron los datos del documento "Oferta Definitiva de Carreras, Vacantes y Ponderaciones - Proceso de Admisión 2026” publicado por el DEMRE.
   </script>
   <script id="19" type="application/sql" hidden="" database="duckdb" output="dataUniversidadComuna">
+    WITH tabla as (
     SELECT
-
+      puntaje.ID_aux,
       NOMBRE_UNIVERSIDAD,
-      LUGAR_IMPARTE,
-      NOM_COM_RBD,
-      count(*) as estudiantes
+      CASE
+        WHEN LUGAR_IMPARTE = 'CHILLAN' THEN 'CHILLÁN'
+        WHEN LUGAR_IMPARTE = 'CONCEPCION' THEN 'CONCEPCIÓN'
+        WHEN LUGAR_IMPARTE = 'COPIAPO' THEN 'COPIAPÓ'
+        WHEN LUGAR_IMPARTE = 'CURICO' THEN 'CURICÓ'
+        WHEN LUGAR_IMPARTE = 'LOS ANGELES' THEN 'LOS ÁNGELES'
+        WHEN LUGAR_IMPARTE = 'REGION METROPOLITANA' THEN 'REGIÓN METROPOLITANA'
+        WHEN LUGAR_IMPARTE = 'SEDE CONCEPCION' THEN 'SEDE CONCEPCIÓN'
+        WHEN LUGAR_IMPARTE = 'VALPARAISO' THEN 'VALPARAÍSO'
+        WHEN LUGAR_IMPARTE = 'QUIILPUE' THEN 'QUILPUÉ'
+        WHEN LUGAR_IMPARTE = 'QUIILPUÉ' THEN 'QUILPUÉ'
+        ELSE LUGAR_IMPARTE
+      END as LUGAR_IMPARTE,
+      NOM_COM_RBD
     FROM "./data/Rinden_Admisión2026/ArchivoC_Adm2026REG.csv" puntaje
     LEFT JOIN "./data/Postulación_Admisión2026/ArchivoD_Adm2026REG.csv" postulacion
       ON puntaje.ID_aux = postulacion.ID_aux
@@ -58,27 +115,55 @@
       ON puntaje.RBD = dir.RBD
     LEFT JOIN './data/Postulación_Admisión2026/Oferta académica.csv' oferta
      ON postulacion.COD_CARRERA_PREF = oferta.CODIGO_CARRERA
-    LEFT JOIN './data/Postulación_Admisión2026/OFERTA_DEFINITIVA_PROGRAMAS_PAES_2025.csv' ofertaMineduc2025
-     ON postulacion.COD_CARRERA_PREF = ofertaMineduc2025.COD_CARRERA
+    LEFT JOIN './data/Postulación_Admisión2026/carreras_lugar_imparte_2026.csv' lugar
+     ON postulacion.COD_CARRERA_PREF = lugar.COD_CARRERA
     WHERE
-
-       SITUACION_EGRESO = 1
+      SITUACION_EGRESO = 1
       AND ESTADO_PREF = 24
+    )
+
+      SELECT
+
+      NOMBRE_UNIVERSIDAD,
+      LUGAR_IMPARTE,
+      NOM_COM_RBD,
+      count(*) as estudiantes
+    FROM tabla
     GROUP BY
       NOM_COM_RBD,
       NOMBRE_UNIVERSIDAD,
       LUGAR_IMPARTE
     ORDER BY count(*) DESC
   </script>
-  <script id="10" type="application/sql" hidden="" database="duckdb" output="dataOfertaAcademica">
+  <script id="10" type="application/sql" hidden="" database="duckdb" output="dataSedes">
+    WITH tabla as (
     SELECT DISTINCT
       NOMBRE_UNIVERSIDAD,
-      LUGAR_IMPARTE
+      CASE
+        WHEN LUGAR_IMPARTE = 'CHILLAN' THEN 'CHILLÁN'
+        WHEN LUGAR_IMPARTE = 'CONCEPCION' THEN 'CONCEPCIÓN'
+        WHEN LUGAR_IMPARTE = 'COPIAPO' THEN 'COPIAPÓ'
+        WHEN LUGAR_IMPARTE = 'CURICO' THEN 'CURICÓ'
+        WHEN LUGAR_IMPARTE = 'LOS ANGELES' THEN 'LOS ÁNGELES'
+        WHEN LUGAR_IMPARTE = 'REGION METROPOLITANA' THEN 'REGIÓN METROPOLITANA'
+        WHEN LUGAR_IMPARTE = 'SEDE CONCEPCION' THEN 'SEDE CONCEPCIÓN'
+        WHEN LUGAR_IMPARTE = 'VALPARAISO' THEN 'VALPARAÍSO'
+        WHEN LUGAR_IMPARTE = 'QUIILPUE' THEN 'QUILPUÉ'
+        WHEN LUGAR_IMPARTE = 'QUIILPUÉ' THEN 'QUILPUÉ'
+        ELSE LUGAR_IMPARTE
+      END as LUGAR_IMPARTE
     FROM './data/Postulación_Admisión2026/Oferta académica.csv' oferta
-      INNER JOIN './data/Postulación_Admisión2026/OFERTA_DEFINITIVA_PROGRAMAS_PAES_2025.csv' ofertaMineduc2025
-     ON oferta.CODIGO_CARRERA = ofertaMineduc2025.COD_CARRERA
+      INNER JOIN './data/Postulación_Admisión2026/carreras_lugar_imparte_2026.csv' lugar
+     ON oferta.CODIGO_CARRERA = lugar.COD_CARRERA
+    )
 
-    ORDER BY NOMBRE_UNIVERSIDAD, NOMBRE_CARRERA
+    SELECT
+      NOMBRE_UNIVERSIDAD,
+      LUGAR_IMPARTE,
+      (SELECT count(*) FROM tabla t2 WHERE tabla.NOMBRE_UNIVERSIDAD = t2.NOMBRE_UNIVERSIDAD) AS numeroSedes
+    FROM tabla
+
+    ORDER BY NOMBRE_UNIVERSIDAD
   </script>
   <script id="16" type="text/x-typescript" hidden="">
     import {Pack} from "observable:@d3/pack"
