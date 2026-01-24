@@ -39,10 +39,41 @@
   </script>
   <script id="27" type="text/markdown">
     ### Detalle
-    20 comunas con mayor cantidad de estudiantes
   </script>
-  <script id="25" type="text/x-typescript">
+  <script id="37" type="text/x-typescript">
+    const mostrarTodas = view(Inputs.toggle({label: "Ver todas las comunas", value: false}));
+  </script>
+  <script id="38" type="text/x-typescript">
     (() => {
+      const {data, totalEstudiantes} = datosTabla; // now references the named variable
+
+      const registrosAMostrar = mostrarTodas ? data : data.slice(0,20);
+      const titulo = mostrarTodas ? `Todas las comunas (${data.length})` : "20 comunas con mayor cantidad de estudiantes";
+
+      return htl.html`
+        <h4>${titulo}</h4>
+        ${mostrarTodas ? htl.html`<div style="max-height: 400px; overflow-y: auto;">` : htl.html`<div>`}
+          <table style="max-width:450px;">
+            <thead>
+              <tr><th>#</th><th>Comuna</th><th># Estudiantes</th><th>% del total</th><th>% acumulado</th></tr>
+            </thead>
+            <tbody>
+              ${registrosAMostrar
+                .map((d,i) => htl.html`<tr>
+                  <td>${i+1}</td>
+                  <td>${d.NOM_COM_RBD}</td>
+                  <td>${d.estudiantes}</td>
+                  <td>${d3.format(".2%")(d.estudiantes/totalEstudiantes)}</td>
+                  <td>${d3.format(".2%")(d.estudiantesAcumulados/totalEstudiantes)}</td>
+                </tr>`)}
+            </tbody>
+          </table>
+        </div>
+      `;
+    })()
+  </script>
+  <script id="25" type="text/x-typescript" hidden="">
+    const datosTabla = (() => {
       let accum = 0;
 
       const data = _.chain(dataUniversidadComuna)
@@ -59,23 +90,7 @@
       const totalEstudiantes = data
         .reduce((memo,d) => memo+ +d.estudiantes,0);
 
-      return md`
-    <table style="max-width:450px;">
-    <thead>
-    <tr><th>#</th><th>Comuna</th><th># Estudiantes</th><th>% del total</th><th>% acumulado</th></tr>
-    </thead>
-    <tbody>
-    ${data
-      .slice(0,20)
-      .map((d,i) => `<tr>
-      <td>${i+1}</td>
-      <td>${d.NOM_COM_RBD}</td>
-      <td>${d.estudiantes}</td>
-      <td>${d3.format(".2%")(d.estudiantes/totalEstudiantes)}</td>
-      <td>${d3.format(".2%")(d.estudiantesAcumulados/totalEstudiantes)}</td>
-      </tr>`).join("\n")}
-    </tbody>
-    </table>`
+      return {data, totalEstudiantes};
     })()
   </script>
   <script id="21" type="text/markdown">
