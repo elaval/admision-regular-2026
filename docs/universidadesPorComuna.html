@@ -22,7 +22,29 @@
   <script id="52" type="text/html">
     <h2 style="max-width:100%;">Comuna ${comuna}</h2>
 
-    <h3 style="max-width:100%;">Universidades en las que fueron seleccionados los estudiantes egresados de Educación Media en dicha comuna</h3>
+
+  </script>
+  <script id="57" type="text/x-typescript" hidden="">
+    const statsComuna = (() => {
+      const data = dataRindenPAESPorComuna.filter(d => d.NOM_COM_RBD == comuna)
+      const statsComuna =   {
+        rindenPAES : data.reduce((memo,d) => memo + d.estudiantes_rindenPAES,0),
+        seleccionados : data.reduce((memo,d) => memo + d.seleccionados,0),
+        porcentajeSeleccionados : data.reduce((memo,d) => memo + d.seleccionados,0)/data.reduce((memo,d) => memo + d.estudiantes_rindenPAES,0),
+        dataPorDependencia: data
+      };
+
+      return statsComuna;
+
+    }
+    )()
+
+  </script>
+  <script id="58" type="text/markdown">
+    En ${comuna} ${statsComuna.seleccionados} estudiantes egresados en 2025 fueron seleccionados en alguna universidad.  Los seleccionados son un ${d3.format(".1%")(statsComuna.porcentajeSeleccionados)} de quienes rindieron la PAES con puntaje valido.
+  </script>
+  <script id="59" type="text/markdown">
+    <h3 style="max-width:100%;">Universidades en las que fueron seleccionados los estudiantes egresados de Educación Media en ${comuna}</h3>
   </script>
   <script id="50" type="text/x-typescript">
     (() => {
@@ -280,6 +302,47 @@
       NOMBRE_REGION,
       ORDEN_REGION
     ORDER BY  ORDEN_REGION
+
+  </script>
+  <script id="56" type="application/sql" hidden="" database="duckdb" output="dataRindenPAESPorComuna">
+    WITH tabla as (
+    SELECT
+      *,
+      CASE
+        WHEN GRUPO_DEPENDENCIA = 1  THEN 'Particular pagado'
+        WHEN GRUPO_DEPENDENCIA = 2  THEN 'Particular subvencionado'
+        WHEN GRUPO_DEPENDENCIA = 3  THEN 'Municipal'
+        WHEN GRUPO_DEPENDENCIA = 4  THEN 'Servicio Local de Educación'
+        ELSE 'Otra / sin información'
+      END AS DEPENDENCIA,
+
+    FROM "./data/Rinden_Admisión2026/ArchivoC_Adm2026REG.csv" puntaje
+    LEFT JOIN "./data/Directorio-Oficial-EE-2025/20250926_Directorio_Oficial_EE_2025_20250430_WEB.csv" dir
+      ON puntaje.RBD = dir.RBD
+    LEFT JOIN "./data/Postulación_Admisión2026/ArchivoD_Adm2026REG.csv" postulacion
+      ON puntaje.ID_aux = postulacion.ID_aux AND ESTADO_PREF = 24
+
+    WHERE SITUACION_EGRESO = 1
+      AND CLEC_REG_ACTUAL > 0
+      AND MATE1_REG_ACTUAL > 0
+
+
+    )
+
+
+    SELECT
+      NOM_COM_RBD,
+      GRUPO_DEPENDENCIA,
+      DEPENDENCIA,
+      SUM(CASE WHEN ESTADO_PREF = 24 THEN 1 ELSE 0 END) as seleccionados,
+      count(*) as estudiantes_rindenPAES
+    FROM tabla
+    GROUP BY NOM_COM_RBD,
+      GRUPO_DEPENDENCIA,
+      DEPENDENCIA
+    ORDER BY NOM_COM_RBD,
+      GRUPO_DEPENDENCIA
+
 
   </script>
   <script id="16" type="text/x-typescript" hidden="">
