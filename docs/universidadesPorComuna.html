@@ -24,10 +24,6 @@
 
     <h3 style="max-width:100%;">Universidades en las que fueron seleccionados los estudiantes egresados de Educación Media en dicha comuna</h3>
   </script>
-  <script id="34" type="text/x-typescript" hidden="">
-    const numeroSedesUniversidadSeleccionada = dataSedes.find(d => d.NOMBRE_UNIVERSIDAD == universidad)["numeroSedes"]
-    const etiquetaUniversidadSede = numeroSedesUniversidadSeleccionada > 1 ? `${universidad} - sede ${lugar}` : `${universidad}`
-  </script>
   <script id="50" type="text/x-typescript">
     (() => {
       const dataComunas = dataUniversidadComuna.filter(d => d.NOM_COM_RBD == comuna)
