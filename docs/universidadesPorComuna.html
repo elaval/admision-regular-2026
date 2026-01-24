@@ -1,0 +1,347 @@
+<!doctype html>
+<notebook theme="glacier">
+  <title>Universidad asociada a la comuna de origen</title>
+  <script id="1" type="text/markdown">
+    # Universidad asociada a la comuna de origen
+  </script>
+  <script id="38" type="text/x-typescript">
+    const region = view(Inputs.select(_.chain(dataComunas)
+                                      .sortBy(d => d.ORDEN_REGION)
+                                      .map(d => d.NOMBRE_REGION)
+                                      .uniq()
+                                      .value(), {label: "Región"}));
+
+  </script>
+  <script id="39" type="text/x-typescript">
+    const registroComuna = view(Inputs.select(_.chain(dataComunas).filter(d => d.NOMBRE_REGION == region).uniqBy(d => d.NOM_COM_RBD).sortBy(d => d.estudiantes).reverse().value(), {label: "Comuna", format: d => `${d.NOM_COM_RBD} (${d.estudiantes} est.)` }));
+
+  </script>
+  <script id="40" type="text/x-typescript" hidden="">
+    const comuna = registroComuna.NOM_COM_RBD
+  </script>
+  <script id="52" type="text/html">
+    <h2 style="max-width:100%;">Comuna ${comuna}</h2>
+
+    <h3 style="max-width:100%;">Universidades en las que fueron seleccionados los estudiantes egresados de Educación Media en dicha comuna</h3>
+  </script>
+  <script id="34" type="text/x-typescript" hidden="">
+    const numeroSedesUniversidadSeleccionada = dataSedes.find(d => d.NOMBRE_UNIVERSIDAD == universidad)["numeroSedes"]
+    const etiquetaUniversidadSede = numeroSedesUniversidadSeleccionada > 1 ? `${universidad} - sede ${lugar}` : `${universidad}`
+  </script>
+  <script id="50" type="text/x-typescript">
+    (() => {
+      const dataComunas = dataUniversidadComuna.filter(d => d.NOM_COM_RBD == comuna)
+
+      return Pack(dataComunas, {
+      path: (d) => `${d.NOMBRE_UNIVERSIDAD}.${d.LUGAR_IMPARTE}`, // e.g. flare/animate/Easing
+      label: (d) => dictMultipleSedes[d.NOMBRE_UNIVERSIDAD]
+        ? `${d.NOMBRE_UNIVERSIDAD}\n${d.LUGAR_IMPARTE}`
+        : `${d.NOMBRE_UNIVERSIDAD}`, // display text
+      value: (d) => d?.estudiantes, // area of each circle
+      title: (d, n) => [n.id, n.value.toLocaleString()].join("\n"), // hover text
+      width,
+      height: 720,
+    })
+    })()
+  </script>
+  <script id="22" type="text/markdown">
+    <div style="max-width:100%;"><small>Nota: Las comunas corresponden a la comuna del establecimiento educacional donde cursaron Educación Media los estudiantes que egresaron en 2025 y fueron aceptados en carreras de la universidad y sede respectiva en el proceso de admisión 2026.</small></div>
+  </script>
+  <script id="53" type="text/markdown">
+    ### Detalle
+    20 universidades/lugar con mayor cantidad de estudiantes
+  </script>
+  <script id="49" type="text/x-typescript">
+    (() => {
+      let accum = 0;
+
+      const data = _.chain(dataUniversidadComuna)
+        .filter(d => d.NOM_COM_RBD == comuna)
+        .sortBy(d => d.estudiantes)
+        .reverse()
+        .map(d => {
+          d.estudiantesAcumulados = accum + d.estudiantes;
+          accum += d.estudiantes;
+          return d;
+        })
+        .value()
+
+      const totalEstudiantes = data
+        .reduce((memo,d) => memo+ +d.estudiantes,0);
+
+      return md`
+    <table style="max-width:450px;">
+    <thead>
+    <tr><th>#</th><th>Universidad</th><th>Lugar/Sede</th><th># Estudiantes</th><th>% del total</th><th>% acumulado</th></tr>
+    </thead>
+    <tbody>
+    ${data
+      .slice(0,20)
+      .map((d,i) => `<tr>
+      <td>${i+1}</td>
+      <td>${d.NOMBRE_UNIVERSIDAD}</td>
+      <td>${d.LUGAR_IMPARTE}</td>
+      <td>${d.estudiantes}</td>
+      <td>${d3.format(".2%")(d.estudiantes/totalEstudiantes)}</td>
+      <td>${d3.format(".2%")(d.estudiantesAcumulados/totalEstudiantes)}</td>
+      </tr>`).join("\n")}
+    </tbody>
+    </table>`
+    })()
+  </script>
+  <script id="23" type="text/html">
+    <h2 style="max-width:100%;"> ${etiquetaUniversidadSede}</h2>
+    <h3 style="max-width:100%;">Comunas de origen de los estudiantes de Educación Media que egresaron en 2025 y fueron aceptados en el proceso de admisión universitaria 2026</h3>
+  </script>
+  <script id="15" type="text/x-typescript">
+    (() => {
+      const dataUniversidad = dataUniversidadComuna.filter(d => d.NOMBRE_UNIVERSIDAD == universidad && d.LUGAR_IMPARTE == lugar)
+
+      return Pack(dataUniversidad, {
+      path: (d) => d.NOM_COM_RBD.replaceAll(".", "/"), // e.g. flare/animate/Easing
+      label: (d) => d.NOM_COM_RBD.split(".").pop(), // display text
+      value: (d) => d?.estudiantes, // area of each circle
+      title: (d, n) => [n.id, n.value.toLocaleString()].join("\n"), // hover text
+      width,
+      height: 720,
+    })
+    })()
+  </script>
+  <script id="25" type="text/x-typescript">
+    (() => {
+      let accum = 0;
+
+      const data = _.chain(dataUniversidadComuna)
+        .filter(d => d.NOMBRE_UNIVERSIDAD == universidad && d.LUGAR_IMPARTE == lugar)
+        .sortBy(d => d.estudiantes)
+        .reverse()
+        .map(d => {
+          d.estudiantesAcumulados = accum + d.estudiantes;
+          accum += d.estudiantes;
+          return d;
+        })
+        .value()
+
+      const totalEstudiantes = data
+        .reduce((memo,d) => memo+ +d.estudiantes,0);
+
+      return md`
+    <table style="max-width:450px;">
+    <thead>
+    <tr><th>#</th><th>Comuna</th><th># Estudiantes</th><th>% del total</th><th>% acumulado</th></tr>
+    </thead>
+    <tbody>
+    ${data
+      .slice(0,20)
+      .map((d,i) => `<tr>
+      <td>${i+1}</td>
+      <td>${d.NOM_COM_RBD}</td>
+      <td>${d.estudiantes}</td>
+      <td>${d3.format(".2%")(d.estudiantes/totalEstudiantes)}</td>
+      <td>${d3.format(".2%")(d.estudiantesAcumulados/totalEstudiantes)}</td>
+      </tr>`).join("\n")}
+    </tbody>
+    </table>`
+    })()
+  </script>
+  <script id="21" type="text/markdown">
+    ---
+
+    **Fuentes de datos:**
+    - Datos de postulación y selección del Proceso de Admisión 2026 - Datos abiertos DEMRE
+    - PAES 2025 - Oferta Definitiva de Programas - Datos Abiertos Mineduc
+    - Directorio de Establecimientos Escolares 2025 - Datos Abiertos Mineduc
+    - Oferta Definitiva de Carreras, Vacantes y Ponderaciones - Proceso de Admisión 2026, DEMRE
+
+    **Notas metodológicas:**
+    - Para identificar el lugar donde se imparte cada carrera se extrajeron los datos del documento "Oferta Definitiva de Carreras, Vacantes y Ponderaciones - Proceso de Admisión 2026” publicado por el DEMRE.
+  </script>
+  <script id="36" type="text/markdown">
+    Autor: Ernesto Laval (@elaval)
+  </script>
+  <script id="19" type="application/sql" hidden="" database="duckdb" output="dataUniversidadComuna">
+    WITH tabla as (
+    SELECT
+      puntaje.ID_aux,
+      NOMBRE_UNIVERSIDAD,
+      CASE
+        WHEN LUGAR_IMPARTE = 'CHILLAN' THEN 'CHILLÁN'
+        WHEN LUGAR_IMPARTE = 'CONCEPCION' THEN 'CONCEPCIÓN'
+        WHEN LUGAR_IMPARTE = 'COPIAPO' THEN 'COPIAPÓ'
+        WHEN LUGAR_IMPARTE = 'CURICO' THEN 'CURICÓ'
+        WHEN LUGAR_IMPARTE = 'LOS ANGELES' THEN 'LOS ÁNGELES'
+        WHEN LUGAR_IMPARTE = 'REGION METROPOLITANA' THEN 'REGIÓN METROPOLITANA'
+        WHEN LUGAR_IMPARTE = 'SEDE CONCEPCION' THEN 'SEDE CONCEPCIÓN'
+        WHEN LUGAR_IMPARTE = 'VALPARAISO' THEN 'VALPARAÍSO'
+        WHEN LUGAR_IMPARTE = 'QUIILPUE' THEN 'QUILPUÉ'
+        WHEN LUGAR_IMPARTE = 'QUIILPUÉ' THEN 'QUILPUÉ'
+        ELSE LUGAR_IMPARTE
+      END as LUGAR_IMPARTE,
+      NOM_COM_RBD
+    FROM "./data/Rinden_Admisión2026/ArchivoC_Adm2026REG.csv" puntaje
+    LEFT JOIN "./data/Postulación_Admisión2026/ArchivoD_Adm2026REG.csv" postulacion
+      ON puntaje.ID_aux = postulacion.ID_aux
+    LEFT JOIN "./data/Directorio-Oficial-EE-2025/20250926_Directorio_Oficial_EE_2025_20250430_WEB.csv" dir
+      ON puntaje.RBD = dir.RBD
+    LEFT JOIN './data/Postulación_Admisión2026/Oferta académica.csv' oferta
+     ON postulacion.COD_CARRERA_PREF = oferta.CODIGO_CARRERA
+    LEFT JOIN './data/Postulación_Admisión2026/carreras_lugar_imparte_2026.csv' lugar
+     ON postulacion.COD_CARRERA_PREF = lugar.COD_CARRERA
+    WHERE
+      SITUACION_EGRESO = 1
+      AND ESTADO_PREF = 24
+    )
+
+      SELECT
+
+      NOMBRE_UNIVERSIDAD,
+      LUGAR_IMPARTE,
+      NOM_COM_RBD,
+      count(*) as estudiantes
+    FROM tabla
+    GROUP BY
+      NOM_COM_RBD,
+      NOMBRE_UNIVERSIDAD,
+      LUGAR_IMPARTE
+    ORDER BY count(*) DESC
+  </script>
+  <script id="51" type="text/x-typescript" hidden="">
+    const dictMultipleSedes = (() => {
+      const dict = {};
+      _.chain(dataSedes)
+      .each(d => {
+        dict[d.NOMBRE_UNIVERSIDAD] = d.numeroSedes > 1
+      })
+      .value()
+      return dict;
+    })()
+  </script>
+  <script id="35" type="application/sql" hidden="" database="duckdb" output="dataSedes">
+    WITH tabla as (
+    SELECT
+      puntaje.ID_aux,
+      NOMBRE_UNIVERSIDAD,
+      CASE
+        WHEN LUGAR_IMPARTE = 'CHILLAN' THEN 'CHILLÁN'
+        WHEN LUGAR_IMPARTE = 'CONCEPCION' THEN 'CONCEPCIÓN'
+        WHEN LUGAR_IMPARTE = 'COPIAPO' THEN 'COPIAPÓ'
+        WHEN LUGAR_IMPARTE = 'CURICO' THEN 'CURICÓ'
+        WHEN LUGAR_IMPARTE = 'LOS ANGELES' THEN 'LOS ÁNGELES'
+        WHEN LUGAR_IMPARTE = 'REGION METROPOLITANA' THEN 'REGIÓN METROPOLITANA'
+        WHEN LUGAR_IMPARTE = 'SEDE CONCEPCION' THEN 'SEDE CONCEPCIÓN'
+        WHEN LUGAR_IMPARTE = 'VALPARAISO' THEN 'VALPARAÍSO'
+        WHEN LUGAR_IMPARTE = 'QUIILPUE' THEN 'QUILPUÉ'
+        WHEN LUGAR_IMPARTE = 'QUIILPUÉ' THEN 'QUILPUÉ'
+        ELSE LUGAR_IMPARTE
+      END as LUGAR_IMPARTE
+    FROM "./data/Rinden_Admisión2026/ArchivoC_Adm2026REG.csv" puntaje
+    LEFT JOIN "./data/Postulación_Admisión2026/ArchivoD_Adm2026REG.csv" postulacion
+      ON puntaje.ID_aux = postulacion.ID_aux
+    LEFT JOIN "./data/Directorio-Oficial-EE-2025/20250926_Directorio_Oficial_EE_2025_20250430_WEB.csv" dir
+      ON puntaje.RBD = dir.RBD
+    LEFT JOIN './data/Postulación_Admisión2026/Oferta académica.csv' oferta
+     ON postulacion.COD_CARRERA_PREF = oferta.CODIGO_CARRERA
+    LEFT JOIN './data/Postulación_Admisión2026/carreras_lugar_imparte_2026.csv' lugar
+     ON postulacion.COD_CARRERA_PREF = lugar.COD_CARRERA
+    WHERE
+      SITUACION_EGRESO = 1
+      AND ESTADO_PREF = 24
+    ),
+
+    tablaSedes as (
+      SELECT
+
+      NOMBRE_UNIVERSIDAD,
+      LUGAR_IMPARTE,
+      count(*) as estudiantes
+    FROM tabla
+    GROUP BY
+      NOMBRE_UNIVERSIDAD,
+      LUGAR_IMPARTE
+    ORDER BY NOMBRE_UNIVERSIDAD, count(*) DESC)
+
+    SELECT *,
+      (SELECT count(*) FROM tablaSedes t2 WHERE tablaSedes.NOMBRE_UNIVERSIDAD = t2.NOMBRE_UNIVERSIDAD) as numeroSedes
+
+    FROM tablaSedes
+    ORDER BY NOMBRE_UNIVERSIDAD, estudiantes DESC
+  </script>
+  <script id="37" type="application/sql" hidden="" database="duckdb" output="dataComunas">
+    WITH tabla as (
+    SELECT
+      puntaje.ID_aux,
+      NOM_COM_RBD,
+      CASE
+        WHEN COD_REG_RBD = 1  THEN 'Tarapacá'
+        WHEN COD_REG_RBD = 2  THEN 'Antofagasta'
+        WHEN COD_REG_RBD = 3  THEN 'Atacama'
+        WHEN COD_REG_RBD = 4  THEN 'Coquimbo'
+        WHEN COD_REG_RBD = 5  THEN 'Valparaíso'
+        WHEN COD_REG_RBD = 6  THEN 'O’Higgins'
+        WHEN COD_REG_RBD = 7  THEN 'Maule'
+        WHEN COD_REG_RBD = 8  THEN 'Biobío'
+        WHEN COD_REG_RBD = 9  THEN 'La Araucanía'
+        WHEN COD_REG_RBD = 10 THEN 'Los Lagos'
+        WHEN COD_REG_RBD = 11 THEN 'Aysén'
+        WHEN COD_REG_RBD = 12 THEN 'Magallanes'
+        WHEN COD_REG_RBD = 13 THEN 'Metropolitana de Santiago'
+        WHEN COD_REG_RBD = 14 THEN 'Los Ríos'
+        WHEN COD_REG_RBD = 15 THEN 'Arica y Parinacota'
+        WHEN COD_REG_RBD = 16 THEN 'Ñuble'
+        ELSE 'Otra / sin información'
+      END AS NOMBRE_REGION,
+       CASE
+        WHEN COD_REG_RBD = 15 THEN 1
+        WHEN COD_REG_RBD = 1  THEN 2
+        WHEN COD_REG_RBD = 2  THEN 3
+        WHEN COD_REG_RBD = 3  THEN 4
+        WHEN COD_REG_RBD = 4  THEN 5
+        WHEN COD_REG_RBD = 5  THEN 6
+        WHEN COD_REG_RBD = 13 THEN 7
+        WHEN COD_REG_RBD = 6  THEN 8
+        WHEN COD_REG_RBD = 7  THEN 9
+        WHEN COD_REG_RBD = 16 THEN 10
+        WHEN COD_REG_RBD = 8  THEN 11
+        WHEN COD_REG_RBD = 9  THEN 12
+        WHEN COD_REG_RBD = 14 THEN 13
+        WHEN COD_REG_RBD = 10 THEN 14
+        WHEN COD_REG_RBD = 11 THEN 15
+        WHEN COD_REG_RBD = 12 THEN 16
+        ELSE 'Otra / sin información'
+      END AS ORDEN_REGION,
+      COD_REG_RBD
+
+    FROM "./data/Rinden_Admisión2026/ArchivoC_Adm2026REG.csv" puntaje
+    LEFT JOIN "./data/Postulación_Admisión2026/ArchivoD_Adm2026REG.csv" postulacion
+      ON puntaje.ID_aux = postulacion.ID_aux
+    LEFT JOIN "./data/Directorio-Oficial-EE-2025/20250926_Directorio_Oficial_EE_2025_20250430_WEB.csv" dir
+      ON puntaje.RBD = dir.RBD
+    LEFT JOIN './data/Postulación_Admisión2026/Oferta académica.csv' oferta
+     ON postulacion.COD_CARRERA_PREF = oferta.CODIGO_CARRERA
+    LEFT JOIN './data/Postulación_Admisión2026/carreras_lugar_imparte_2026.csv' lugar
+     ON postulacion.COD_CARRERA_PREF = lugar.COD_CARRERA
+    WHERE
+      SITUACION_EGRESO = 1
+      AND ESTADO_PREF = 24
+    )
+
+
+    SELECT
+      NOM_COM_RBD,
+      COD_REG_RBD,
+      NOMBRE_REGION,
+      ORDEN_REGION,
+      count(*) as estudiantes
+    FROM tabla
+    GROUP BY
+      NOM_COM_RBD,
+      COD_REG_RBD,
+      NOMBRE_REGION,
+      ORDEN_REGION
+    ORDER BY  ORDEN_REGION
+
+  </script>
+  <script id="16" type="text/x-typescript" hidden="">
+    import {Pack} from "observable:@d3/pack"
+  </script>
+</notebook>
